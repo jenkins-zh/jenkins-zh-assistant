@@ -5,7 +5,7 @@ pipeline {
     }
     environment {
         translate = '翻译'
-        original    = '原创'
+        original = '原创'
     }
     
     stages {
@@ -15,27 +15,41 @@ pipeline {
                 script {
                     genFile()
                     today = readFile('today').trim()
+                    echo "today: ${today}"
                     tomorrow = readFile('tomorrow').trim()
+                    echo "tomorrow: ${tomorrow}"
                     props = readJSON file: 'needReviewData.json'
-                    approveDate = readJSON file 'needMergeData.json'
+                    echo "props: ${props}"
+                    sh "pwd"
+                    sh "ls -ahl |grep .json"
+                    approveData = readJSON file: 'needMergeData.json'
+                    echo "approveData: ${approveData}"
                     defaultValue = 0
                     content = ""
                     appValue = 0
                     contentData = ""
-                    for(i=0; i< props.items.size(); i++ ){
-                        if((props.items[i].title.contains(env.translate) && props.items[i].title.contains(today)) || (props.items[i].title.contains(env.translate) && props.items[i].title.contains(tomorrow)) || (props.items[i].title.contains(env.original) && props.items[i].title.contains(today)) || (props.items[i].title.contains(env.original) && props.items[i].title.contains(tomorrow))) {
-                            content += "${props.items[i].html_url} \n"
-                            defaultValue++
+                    echo "props.total_count: ${props.total_count}"
+                    if(props.total_count != 0){
+                        for(i=0; i< props.items.size(); i++ ){
+                            if((props.items[i].title.contains(env.translate) && props.items[i].title.contains(today)) || (props.items[i].title.contains(env.translate) && props.items[i].title.contains(tomorrow)) || (props.items[i].title.contains(env.original) && props.items[i].title.contains(today)) || (props.items[i].title.contains(env.original) && props.items[i].title.contains(tomorrow))) {
+                                content += "${props.items[i].html_url} \n"
+                                defaultValue++
+                            }
+                            
                         }
-                        
                     }
-                    for(i=0; i< approveDate.items.size(); i++ ){
-                        if((approveDate.items[i].title.contains(env.translate) && approveDate.items[i].title.contains(today)) || (approveDate.items[i].title.contains(env.original) && approveDate.items[i].title.contains(today)) ) {
-                            content += "${approveDate.items[i].html_url} \n"
-                            appValue++
+                    echo "content: ${content}"
+                    echo "approveData.total_count: ${approveData.total_count}"
+                    if(approveData.total_count !=0){
+                        for(i=0; i< approveData.items.size(); i++ ){
+                            if((approveData.items[i].title.contains(env.translate) && approveData.items[i].title.contains(today)) || (approveData.items[i].title.contains(env.original) && approveData.items[i].title.contains(today)) ) {
+                                contentData += "${approveData.items[i].html_url} \n"
+                                appValue++
+                            }
+                            
                         }
-                        
                     }
+                    echo "contentData: ${contentData}"
                     sendEmail(defaultValue,content,today,appValue,contentData)
                 }
                 
